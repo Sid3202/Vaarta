@@ -1,0 +1,81 @@
+spring:
+  cloud:
+    azure:
+      keyvault:
+        secret:
+          property-sources[0]:
+            endpoint: https://vaarta-vault-prod.vault.azure.net/
+            credential:
+              managed-identity-enabled: true
+              client-id: ${AZURE_CLIENT_ID:7a145cce-7fcd-49b1-8813-48647598fe22}
+  application:
+    name: meeting-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://vaarta-db.postgres.database.azure.com:5432/postgres}
+    username: ${DB_USER:dbadmin}
+    password: ${DB-PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: meeting_service
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    default-schema: meeting_service
+    create-schemas: true
+    table: flyway_schema_history_meeting
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:false}
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000 # 10 minutes default TTL
+      cache-null-values: false
+
+# ── JWT ─────────────────────────────────────────────────────────────────────
+jwt:
+  secret: ${JWT-SECRET}
+
+# ── Application ──────────────────────────────────────────────────────────────
+app:
+  frontend-url: ${FRONTEND_URL:https://www.vaarta.site}
+  notification-service-url: ${NOTIFICATION_SERVICE_URL:https://notification-service.internal.vaarta-env.azurecontainerapps.io}
+  ai-service-url: ${AI_SERVICE_URL:https://ai-service.internal.vaarta-env.azurecontainerapps.io}
+  auth-service-url: ${AUTH_SERVICE_URL:https://auth-service.jollystone-d8b7ca7f.eastus.azurecontainerapps.io}
+  internal-api-key: ${INTERNAL-API-KEY}
+
+server:
+  port: 8080
+  error:
+    include-message: always
+
+# ── LiveKit ──────────────────────────────────────────────────────────────────
+livekit:
+  api:
+    key: ${LIVEKIT-API-KEY}
+    secret: ${LIVEKIT-API-SECRET}
+  url: ${LIVEKIT_URL:wss://vaarta-gtmvkch7.livekit.cloud}
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.vaarta: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{requestId}] - %msg%n"
