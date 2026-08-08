@@ -1,0 +1,87 @@
+spring:
+  cloud:
+    azure:
+      keyvault:
+        secret:
+          property-sources[0]:
+            endpoint: https://vaarta-vault-prod.vault.azure.net/
+            credential:
+              managed-identity-enabled: true
+              client-id: ${AZURE_CLIENT_ID:7a145cce-7fcd-49b1-8813-48647598fe22}
+  application:
+    name: auth-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://vaarta-db.postgres.database.azure.com:5432/postgres}
+    username: ${DB_USER:dbadmin}
+    password: ${DB-PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate           # Flyway owns the schema — Hibernate only validates
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    table: flyway_schema_history_auth
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:false}
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000 # 1 hour default TTL for users
+      cache-null-values: false
+
+# ── JWT ─────────────────────────────────────────────────────────────────────
+jwt:
+  secret: ${JWT-SECRET}            # must be ≥256 bits for HS256; set in .env
+  access-token-expiry-ms: 900000   # 15 minutes
+  refresh-token-expiry-ms: 604800000  # 7 days
+
+# ── Resend (email provider) ──────────────────────────────────────────────────
+resend:
+  api-key: ${RESEND-API-KEY}
+  from-address: ${RESEND_FROM:noreply@vaarta.site}
+
+# ── Application ──────────────────────────────────────────────────────────────
+app:
+  frontend-url: ${FRONTEND_URL:https://www.vaarta.site}
+  user-service-url: ${USER_SERVICE_URL:https://user-service.jollystone-d8b7ca7f.eastus.azurecontainerapps.io}
+  internal-key: ${INTERNAL-API-KEY}
+
+# ── Actuator ─────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+server:
+  port: 8080
+  error:
+    include-message: always      # return error message in JSON response body
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.vaarta: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{requestId}] - %msg%n"
