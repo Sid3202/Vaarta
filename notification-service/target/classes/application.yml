@@ -1,0 +1,43 @@
+spring:
+  cloud:
+    azure:
+      keyvault:
+        secret:
+          property-sources[0]:
+            endpoint: https://vaarta-vault-prod.vault.azure.net/
+            credential:
+              managed-identity-enabled: true
+              client-id: ${AZURE_CLIENT_ID:7a145cce-7fcd-49b1-8813-48647598fe22}
+  application:
+    name: notification-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://vaarta-db.postgres.database.azure.com:5432/postgres}
+    username: ${DB_USER:dbadmin}
+    password: ${DB-PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: notification_service
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    default-schema: notification_service
+    create-schemas: true
+    table: flyway_schema_history_notification
+
+server:
+  port: 8080
+
+resend:
+  api-key: ${RESEND-API-KEY}
+  from-address: ${RESEND_FROM_ADDRESS:notification@vaarta.site}
+
+app:
+  internal-api-key: ${INTERNAL-API-KEY}
+  frontend-url: ${FRONTEND_URL:https://www.vaarta.site}
