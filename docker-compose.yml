@@ -1,0 +1,117 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vaarta-postgres
+    env_file: .env
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: vaarta-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build: ./auth-service
+    container_name: vaarta-auth-service
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - REDIS_HOST=redis
+
+  user-service:
+    build: ./user-service
+    container_name: vaarta-user-service
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+
+  meeting-service:
+    build: ./meeting-service
+    container_name: vaarta-meeting-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - REDIS_HOST=redis
+
+  notification-service:
+    build: ./notification-service
+    container_name: vaarta-notification-service
+    ports:
+      - "8084:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_AUTH_API_URL=${VITE_AUTH_API_URL}
+        - VITE_USER_API_URL=${VITE_USER_API_URL}
+        - VITE_MEETING_API_URL=${VITE_MEETING_API_URL}
+        - VITE_LIVEKIT_URL=${VITE_LIVEKIT_URL}
+    container_name: vaarta-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - auth-service
+      - user-service
+      - meeting-service
+    env_file: .env
+
+  ai-service:
+    build: ./ai-service
+    container_name: vaarta-ai-service
+    ports:
+      - "8090:8000"
+    depends_on:
+      - meeting-service
+      - notification-service
+    env_file: .env
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: vaarta-livekit
+    command: --dev
+    ports:
+      - "7880:7880" # HTTP/WebSocket
+      - "7881:7881" # RTC TCP
+      - "50000-50100:50000-50100/udp"
+    # LiveKit requires a very specific format for keys with a space
+    environment:
+      - "LIVEKIT_KEYS=${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
+
+volumes:
+  pgdata:
